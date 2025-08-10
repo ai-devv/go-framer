@@ -90,6 +90,14 @@ func TestReader_Read(t *testing.T) {
 		},
 		{
 			name:    "small buffer",
+			bufSize: 2,
+			m:       []byte{0, 1, 0},
+			en:      1,
+			ee:      io.EOF,
+			em:      []byte{0},
+		},
+		{
+			name:    "zero buffer",
 			bufSize: 0,
 			m:       nil,
 			en:      0,
