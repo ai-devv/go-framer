@@ -3,68 +3,149 @@ package go_framer
 import (
 	"bytes"
 	"errors"
+	"io"
 	"math"
 	"testing"
 )
 
-func TestWriter_Write(t *testing.T) {
+func TestNewWriter(t *testing.T) {
 	cases := []struct {
-		name    string
-		bufSize int
-		m       []byte
-		en      int
-		ee      error
-		em      []byte
+		name      string
+		w         io.Writer
+		frameSize int
+		lenBuff   []byte
+		ee        error
 	}{
 		{
-			name:    "very small",
-			bufSize: 10,
-			m:       []byte{1},
-			en:      1,
-			ee:      nil,
-			em:      []byte{0, 1, 1},
+			name:      "full",
+			w:         io.Discard,
+			frameSize: 1,
+			lenBuff:   make([]byte, 2),
+			ee:        nil,
 		},
 		{
-			name:    "small",
-			bufSize: 10,
-			m:       []byte{1, 2, 3, 4, 5},
-			en:      5,
-			ee:      nil,
-			em:      []byte{0, 5, 1, 2, 3, 4, 5},
+			name:      "too small frame size",
+			w:         io.Discard,
+			frameSize: 0,
+			lenBuff:   make([]byte, 2),
+			ee:        invalidFrameSize,
 		},
 		{
-			name:    "exactly one",
-			bufSize: 7,
-			m:       []byte{1, 2, 3, 4, 5},
-			en:      5,
-			ee:      nil,
-			em:      []byte{0, 5, 1, 2, 3, 4, 5},
+			name:      "too large frame size",
+			w:         io.Discard,
+			frameSize: math.MaxUint16 + 1,
+			lenBuff:   make([]byte, 2),
+			ee:        invalidFrameSize,
 		},
 		{
-			name:    "big",
-			bufSize: 7,
+			name:      "too small len buff",
+			w:         io.Discard,
+			frameSize: 1,
+			lenBuff:   make([]byte, 0),
+			ee:        lenBuffTooSmallError,
+		},
+		{
+			name:      "without len buff",
+			w:         io.Discard,
+			frameSize: 1,
+			lenBuff:   nil,
+			ee:        nil,
+		},
+		{
+			name:      "empty writer",
+			w:         nil,
+			frameSize: 1,
+			lenBuff:   make([]byte, 2),
+			ee:        emptyWriterError,
+		},
+	}
+
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			_, err := NewWriter(c.w, c.frameSize, c.lenBuff)
+
+			if !errors.Is(c.ee, err) {
+				t.Errorf("expected err: %s, got: %s\n", c.ee, err)
+			}
+		})
+	}
+}
+
+func TestWriter_Write(t *testing.T) {
+	cases := []struct {
+		name      string
+		m         []byte
+		frameSize int
+		en        int
+		ee        error
+		em        []byte
+	}{
+		// ======== GOOD / MESSAGES ========
+		{
+			name:      "very small one message",
+			m:         []byte{1},
+			frameSize: 1,
+			en:        1,
+			ee:        nil,
+			em:        []byte{0, 1, 1},
+		},
+		{
+			name: "very small three messages",
+			m: []byte{
+				1,
+				1,
+				1,
+			},
+			frameSize: 1,
+			en:        3,
+			ee:        nil,
+			em: []byte{
+				0, 1, 1,
+				0, 1, 1,
+				0, 1, 1,
+			},
+		},
+		{
+			name:      "small one message",
+			m:         []byte{1, 2, 3},
+			frameSize: 10,
+			en:        3,
+			ee:        nil,
+			em:        []byte{0, 3, 1, 2, 3},
+		},
+		{
+			name:      "exactly one message",
+			m:         []byte{1, 2, 3, 4, 5},
+			frameSize: 5,
+			en:        5,
+			ee:        nil,
+			em:        []byte{0, 5, 1, 2, 3, 4, 5},
+		},
+		{
+			name: "more than one message",
 			m: []byte{
 				1, 2, 3, 4, 5,
 				6, 7, 8,
 			},
-			en: 8,
-			ee: nil,
+			frameSize: 5,
+			en:        8,
+			ee:        nil,
 			em: []byte{
 				0, 5, 1, 2, 3, 4, 5,
 				0, 3, 6, 7, 8,
 			},
 		},
 		{
-			name:    "very big",
-			bufSize: 7,
+			name: "big more than one message",
 			m: []byte{
 				1, 2, 3, 4, 5,
 				6, 7, 8, 9, 0,
 				1, 2, 3, 4, 5,
 				6, 7, 8,
 			},
-			en: 18,
-			ee: nil,
+			frameSize: 5,
+			en:        18,
+			ee:        nil,
 			em: []byte{
 				0, 5, 1, 2, 3, 4, 5,
 				0, 5, 6, 7, 8, 9, 0,
@@ -73,34 +154,12 @@ func TestWriter_Write(t *testing.T) {
 			},
 		},
 		{
-			name:    "empty message",
-			bufSize: 0,
-			m:       nil,
-			en:      0,
-			ee:      nil,
-			em:      nil,
-		},
-		{
-			name:    "small buffer",
-			bufSize: 0,
-			m:       []byte{0},
-			en:      0,
-			ee:      bufferTooSmallError,
-			em:      nil,
-		},
-		{
-			name:    "more than uint16 max",
-			bufSize: math.MaxUint16 + 3,
-			m:       make([]byte, math.MaxUint16+1),
-			en:      math.MaxUint16 + 1,
-			ee:      nil,
-			em: append(
-				append(
-					[]byte{255, 255},
-					make([]byte, math.MaxUint16)...,
-				),
-				[]byte{0, 1, 0}...,
-			),
+			name:      "empty message",
+			m:         nil,
+			frameSize: 1,
+			en:        0,
+			ee:        nil,
+			em:        nil,
 		},
 	}
 
@@ -108,7 +167,7 @@ func TestWriter_Write(t *testing.T) {
 		t.Run(c.name, func(t *testing.T) {
 			var buf bytes.Buffer
 
-			w := NewWriter(&buf, make([]byte, c.bufSize))
+			w, _ := NewWriter(&buf, c.frameSize, nil)
 			n, err := w.Write(c.m)
 
 			if c.en != n {

@@ -4,18 +4,37 @@ import (
 	"encoding/binary"
 	"io"
 	"math"
+	"sync"
 )
 
 type Writer struct {
-	w   io.Writer
-	buf []byte
+	mu sync.Mutex
+
+	w         io.Writer
+	frameSize int
+	lenBuf    []byte
 }
 
-func NewWriter(w io.Writer, buf []byte) *Writer {
-	return &Writer{
-		w:   w,
-		buf: buf,
+func NewWriter(w io.Writer, frameSize int, lenBuff []byte) (*Writer, error) {
+	if w == nil {
+		return nil, emptyWriterError
 	}
+
+	if frameSize < 1 || frameSize > math.MaxUint16 {
+		return nil, invalidFrameSize
+	}
+
+	if lenBuff == nil {
+		lenBuff = make([]byte, 2)
+	} else if len(lenBuff) < 2 {
+		return nil, lenBuffTooSmallError
+	}
+
+	return &Writer{
+		w:         w,
+		frameSize: frameSize,
+		lenBuf:    lenBuff,
+	}, nil
 }
 
 // TODO add docs
@@ -26,30 +45,41 @@ func (w *Writer) Write(b []byte) (int, error) {
 		return 0, nil
 	}
 
-	bufCap := len(w.buf) - 2
-
-	if bufCap < 1 {
-		return 0, bufferTooSmallError
-	}
-
-	var wc = 0
+	var wl, wc = 0, 0
 	var err error = nil
 
+	w.mu.Lock()
+	defer w.mu.Unlock()
+
 	for {
-		writeLen := min(bufCap, bLen-wc, math.MaxUint16)
+		wl = min(bLen-wc, w.frameSize)
 
-		binary.BigEndian.PutUint16(w.buf, uint16(writeLen))
-		copy(w.buf[2:], b[wc:wc+writeLen])
+		binary.BigEndian.PutUint16(w.lenBuf, uint16(wl))
 
-		wn, we := w.w.Write(w.buf[:writeLen+2])
-		wc += max(0, wn-2)
+		wn, we := w.w.Write(w.lenBuf)
+		err = we
+
+		if err != nil {
+			// TODO not covered by unit tests
+			break
+		}
+
+		if wn != 2 {
+			// TODO not covered by unit tests
+			err = invalidWriteResultError
+
+			break
+		}
+
+		wn, we = w.w.Write(b[wc : wc+wl])
+		wc += wn
 		err = we
 
 		if wc == bLen || err != nil {
 			break
 		}
 
-		if wn < writeLen+2 || wc > bLen {
+		if wc > bLen {
 			// TODO not covered by unit tests
 			err = invalidWriteResultError
 
