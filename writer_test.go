@@ -1,4 +1,4 @@
-package go_framer
+package framer
 
 import (
 	"bytes"
