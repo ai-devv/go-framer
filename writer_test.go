@@ -74,7 +74,7 @@ func TestWriter_Write(t *testing.T) {
 		},
 		{
 			name:    "empty message",
-			bufSize: 3,
+			bufSize: 0,
 			m:       nil,
 			en:      0,
 			ee:      nil,
@@ -83,18 +83,24 @@ func TestWriter_Write(t *testing.T) {
 		{
 			name:    "small buffer",
 			bufSize: 0,
-			m:       nil,
+			m:       []byte{0},
 			en:      0,
 			ee:      bufferTooSmallError,
 			em:      nil,
 		},
 		{
-			name:    "too large source",
+			name:    "more than uint16 max",
 			bufSize: math.MaxUint16 + 3,
 			m:       make([]byte, math.MaxUint16+1),
-			en:      0,
-			ee:      srcTooLargeError,
-			em:      nil,
+			en:      math.MaxUint16 + 1,
+			ee:      nil,
+			em: append(
+				append(
+					[]byte{255, 255},
+					make([]byte, math.MaxUint16)...,
+				),
+				[]byte{0, 1, 0}...,
+			),
 		},
 	}
 

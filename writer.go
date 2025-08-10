@@ -20,29 +20,23 @@ func NewWriter(w io.Writer, buf []byte) *Writer {
 
 // TODO add docs
 func (w *Writer) Write(b []byte) (int, error) {
-	bufCap := len(w.buf) - 2
-
-	if bufCap < 1 {
-		return 0, bufferTooSmallError
-	}
-
 	bLen := len(b)
 
 	if bLen == 0 {
 		return 0, nil
 	}
 
+	bufCap := len(w.buf) - 2
+
+	if bufCap < 1 {
+		return 0, bufferTooSmallError
+	}
+
 	var wc = 0
 	var err error = nil
 
 	for {
-		writeLen := min(bufCap, bLen-wc)
-
-		if writeLen > math.MaxUint16 {
-			err = srcTooLargeError
-
-			break
-		}
+		writeLen := min(bufCap, bLen-wc, math.MaxUint16)
 
 		binary.BigEndian.PutUint16(w.buf, uint16(writeLen))
 		copy(w.buf[2:], b[wc:wc+writeLen])
