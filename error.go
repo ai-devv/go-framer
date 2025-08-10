@@ -2,9 +2,11 @@ package go_framer
 
 import "errors"
 
-var bufferTooSmallError = errors.New("buffer too small")
+var emptyReaderError = errors.New("empty reader")
 
-var srcTooSmallError = errors.New("source too small")
+var lenBuffTooSmallError = errors.New("length buffer too small")
+
+var bufferTooSmallError = errors.New("buffer too small")
 
 var dstTooSmallError = errors.New("destination too small")
 

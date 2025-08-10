@@ -6,79 +6,92 @@ import (
 )
 
 type Reader struct {
-	r   io.Reader
-	buf []byte
-	pos int
-	rc  int
+	r       io.Reader
+	lenBuff []byte
+	pos     int
+	end     int
 }
 
-func NewReader(r io.Reader, buf []byte) *Reader {
-	return &Reader{
-		r:   r,
-		buf: buf,
-		pos: 0,
-		rc:  0,
+func NewReader(r io.Reader, lenBuff []byte) (*Reader, error) {
+	if r == nil {
+		return nil, emptyReaderError
 	}
+
+	if lenBuff == nil {
+		lenBuff = make([]byte, 2)
+	} else if len(lenBuff) < 2 {
+		return nil, lenBuffTooSmallError
+	}
+
+	return &Reader{
+		r:       r,
+		lenBuff: lenBuff,
+		pos:     0,
+		end:     0,
+	}, nil
 }
 
 // TODO add docs
 func (r *Reader) Read(b []byte) (int, error) {
-	if len(r.buf) < 2 {
-		return 0, bufferTooSmallError
-	}
-
 	var err error = nil
-	var wc, mLen = 0, 0
+
+	mLen, mLenPos, wc := 0, 0, 0
 
 	for {
-		if r.pos == 0 {
-			r.rc, err = r.r.Read(r.buf)
+		if r.pos == r.end {
+			r.pos = wc
+		}
+
+		if r.pos == wc {
+			rn, re := r.r.Read(b[wc:])
+			r.end = wc + rn
+			err = re
 
 			if err != nil {
 				break
 			}
+
+			if rn == 0 {
+				return 0, dstTooSmallError
+			}
 		}
 
 		if mLen == 0 {
-			if r.rc < 2 {
-				err = srcTooSmallError
+			copyLen := min(r.end-r.pos, 2-mLenPos)
 
-				break
-			}
+			copy(r.lenBuff[mLenPos:], b[r.pos:r.pos+copyLen])
 
-			mLen = int(binary.BigEndian.Uint16(r.buf[r.pos : r.pos+2]))
+			r.pos += copyLen
+			mLenPos += copyLen
 
-			if mLen == 0 {
-				r.pos = 0
-
+			if mLenPos != 2 {
 				continue
 			}
 
-			r.pos += 2
+			mLenPos = 0
+			mLen = int(binary.BigEndian.Uint16(r.lenBuff))
+
+			if mLen == 0 {
+				continue
+			}
 
 			if len(b) < mLen {
 				err = dstTooSmallError
 
 				break
 			}
+
+			if r.pos == r.end {
+				continue
+			}
 		}
 
-		copyLen := min(r.rc-r.pos, mLen-wc)
+		copyLen := min(r.end-r.pos, mLen-wc)
 
-		if copyLen == 0 {
-			r.pos = 0
-
-			continue
-		}
-
-		copy(b[wc:], r.buf[r.pos:r.pos+copyLen])
+		copy(b[wc:], b[r.pos:r.pos+copyLen])
 
 		r.pos += copyLen
 		wc += copyLen
-
-		if r.rc == r.pos {
-			r.pos = 0
-		}
 
 		if wc == mLen {
 			break
