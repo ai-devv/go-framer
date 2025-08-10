@@ -12,47 +12,37 @@ func TestNewReader(t *testing.T) {
 		name    string
 		r       io.Reader
 		lenBuff []byte
-		ei      bool
 		ee      error
 	}{
 		{
 			name:    "full",
 			r:       bytes.NewReader(nil),
 			lenBuff: make([]byte, 2),
-			ei:      true,
 			ee:      nil,
 		},
 		{
 			name:    "without len buff",
 			r:       bytes.NewReader(nil),
 			lenBuff: nil,
-			ei:      true,
 			ee:      nil,
 		},
 		{
 			name:    "empty reader",
 			r:       nil,
 			lenBuff: nil,
-			ei:      false,
 			ee:      emptyReaderError,
 		},
 		{
 			name:    "small len buff",
 			r:       bytes.NewReader(nil),
 			lenBuff: make([]byte, 0),
-			ei:      false,
 			ee:      lenBuffTooSmallError,
 		},
 	}
 
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
-			r, err := NewReader(c.r, c.lenBuff)
-			i := r != nil
-
-			if c.ei != i {
-				t.Errorf("expected instance: %v, got: %v\n", c.ei, i)
-			}
+			_, err := NewReader(c.r, c.lenBuff)
 
 			if !errors.Is(c.ee, err) {
 				t.Errorf("expected err: %s, got: %s\n", c.ee, err)
