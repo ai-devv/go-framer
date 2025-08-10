@@ -23,7 +23,7 @@ func NewReader(r io.Reader, buf []byte) *Reader {
 
 // TODO add docs
 func (r *Reader) Read(b []byte) (int, error) {
-	if len(r.buf) < 3 {
+	if len(r.buf) < 2 {
 		return 0, bufferTooSmallError
 	}
 
@@ -37,15 +37,15 @@ func (r *Reader) Read(b []byte) (int, error) {
 			if err != nil {
 				break
 			}
+		}
 
+		if mLen == 0 {
 			if r.rc < 2 {
 				err = srcTooSmallError
 
 				break
 			}
-		}
 
-		if mLen == 0 {
 			mLen = int(binary.BigEndian.Uint16(r.buf[r.pos : r.pos+2]))
 
 			if mLen == 0 {
@@ -64,6 +64,12 @@ func (r *Reader) Read(b []byte) (int, error) {
 		}
 
 		copyLen := min(r.rc-r.pos, mLen-wc)
+
+		if copyLen == 0 {
+			r.pos = 0
+
+			continue
+		}
 
 		copy(b[wc:], r.buf[r.pos:r.pos+copyLen])
 

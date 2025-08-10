@@ -74,7 +74,7 @@ func TestReader_Read(t *testing.T) {
 		},
 		{
 			name:    "empty message",
-			bufSize: 3,
+			bufSize: 2,
 			m:       nil,
 			en:      0,
 			ee:      io.EOF,
@@ -82,7 +82,7 @@ func TestReader_Read(t *testing.T) {
 		},
 		{
 			name:    "zero message",
-			bufSize: 3,
+			bufSize: 2,
 			m:       []byte{0, 0},
 			en:      0,
 			ee:      io.EOF,
@@ -98,7 +98,7 @@ func TestReader_Read(t *testing.T) {
 		},
 		{
 			name:    "too small source",
-			bufSize: 3,
+			bufSize: 2,
 			m:       []byte{0},
 			en:      0,
 			ee:      srcTooSmallError,
