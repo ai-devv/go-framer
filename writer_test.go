@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"errors"
 	"io"
-	"math"
 	"testing"
 )
 
@@ -33,7 +32,7 @@ func TestNewWriter(t *testing.T) {
 		{
 			name:      "too large frame size",
 			w:         io.Discard,
-			frameSize: math.MaxUint16 + 1,
+			frameSize: MaxFrameSize + 1,
 			lenBuff:   make([]byte, MaxFrameSizeBytes),
 			ee:        invalidFrameSize,
 		},
@@ -87,7 +86,7 @@ func TestWriter_Write(t *testing.T) {
 			frameSize: 1,
 			en:        1,
 			ee:        nil,
-			em:        []byte{0, 1, 1},
+			em:        []byte{0, 0, 0, 1, 1},
 		},
 		{
 			name: "very small three messages",
@@ -100,9 +99,9 @@ func TestWriter_Write(t *testing.T) {
 			en:        3,
 			ee:        nil,
 			em: []byte{
-				0, 1, 1,
-				0, 1, 1,
-				0, 1, 1,
+				0, 0, 0, 1, 1,
+				0, 0, 0, 1, 1,
+				0, 0, 0, 1, 1,
 			},
 		},
 		{
@@ -111,7 +110,7 @@ func TestWriter_Write(t *testing.T) {
 			frameSize: 10,
 			en:        3,
 			ee:        nil,
-			em:        []byte{0, 3, 1, 2, 3},
+			em:        []byte{0, 0, 0, 3, 1, 2, 3},
 		},
 		{
 			name:      "exactly one message",
@@ -119,7 +118,7 @@ func TestWriter_Write(t *testing.T) {
 			frameSize: 5,
 			en:        5,
 			ee:        nil,
-			em:        []byte{0, 5, 1, 2, 3, 4, 5},
+			em:        []byte{0, 0, 0, 5, 1, 2, 3, 4, 5},
 		},
 		{
 			name: "more than one message",
@@ -131,8 +130,8 @@ func TestWriter_Write(t *testing.T) {
 			en:        8,
 			ee:        nil,
 			em: []byte{
-				0, 5, 1, 2, 3, 4, 5,
-				0, 3, 6, 7, 8,
+				0, 0, 0, 5, 1, 2, 3, 4, 5,
+				0, 0, 0, 3, 6, 7, 8,
 			},
 		},
 		{
@@ -147,10 +146,10 @@ func TestWriter_Write(t *testing.T) {
 			en:        18,
 			ee:        nil,
 			em: []byte{
-				0, 5, 1, 2, 3, 4, 5,
-				0, 5, 6, 7, 8, 9, 0,
-				0, 5, 1, 2, 3, 4, 5,
-				0, 3, 6, 7, 8,
+				0, 0, 0, 5, 1, 2, 3, 4, 5,
+				0, 0, 0, 5, 6, 7, 8, 9, 0,
+				0, 0, 0, 5, 1, 2, 3, 4, 5,
+				0, 0, 0, 3, 6, 7, 8,
 			},
 		},
 		{

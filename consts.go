@@ -1,3 +1,7 @@
 package go_framer
 
-const MaxFrameSizeBytes = 2
+import "math"
+
+const MaxFrameSizeBytes = 4
+
+const MaxFrameSize = math.MaxUint32

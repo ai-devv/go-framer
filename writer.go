@@ -3,7 +3,6 @@ package go_framer
 import (
 	"encoding/binary"
 	"io"
-	"math"
 	"sync"
 )
 
@@ -20,7 +19,7 @@ func NewWriter(w io.Writer, frameSize int, lenBuff []byte) (*Writer, error) {
 		return nil, emptyWriterError
 	}
 
-	if frameSize < 1 || frameSize > math.MaxUint16 {
+	if frameSize < 1 || frameSize > MaxFrameSize {
 		return nil, invalidFrameSize
 	}
 
@@ -54,7 +53,7 @@ func (w *Writer) Write(b []byte) (int, error) {
 	for {
 		wl = min(bLen-wc, w.frameSize)
 
-		binary.BigEndian.PutUint16(w.lenBuf, uint16(wl))
+		binary.BigEndian.PutUint32(w.lenBuf, uint32(wl))
 
 		wn, we := w.w.Write(w.lenBuf)
 		err = we

@@ -63,7 +63,7 @@ func TestReader_Read(t *testing.T) {
 		// ======== GOOD / MESSAGES ========
 		{
 			name:    "very small one message",
-			m:       []byte{0, 1, 1},
+			m:       []byte{0, 0, 0, 1, 1},
 			dstSize: 10,
 			en:      1,
 			ee:      io.EOF,
@@ -72,9 +72,9 @@ func TestReader_Read(t *testing.T) {
 		{
 			name: "very small three messages",
 			m: []byte{
-				0, 1, 1,
-				0, 1, 1,
-				0, 1, 1,
+				0, 0, 0, 1, 1,
+				0, 0, 0, 1, 1,
+				0, 0, 0, 1, 1,
 			},
 			dstSize: 10,
 			en:      3,
@@ -83,7 +83,7 @@ func TestReader_Read(t *testing.T) {
 		},
 		{
 			name:    "small one message",
-			m:       []byte{0, 3, 1, 2, 3},
+			m:       []byte{0, 0, 0, 3, 1, 2, 3},
 			dstSize: 10,
 			en:      3,
 			ee:      io.EOF,
@@ -91,7 +91,7 @@ func TestReader_Read(t *testing.T) {
 		},
 		{
 			name:    "exactly one message",
-			m:       []byte{0, 5, 1, 2, 3, 4, 5},
+			m:       []byte{0, 0, 0, 5, 1, 2, 3, 4, 5},
 			dstSize: 5,
 			en:      5,
 			ee:      io.EOF,
@@ -100,8 +100,8 @@ func TestReader_Read(t *testing.T) {
 		{
 			name: "more than one message",
 			m: []byte{
-				0, 5, 1, 2, 3, 4, 5,
-				0, 3, 6, 7, 8,
+				0, 0, 0, 5, 1, 2, 3, 4, 5,
+				0, 0, 0, 3, 6, 7, 8,
 			},
 			dstSize: 5,
 			en:      8,
@@ -114,10 +114,10 @@ func TestReader_Read(t *testing.T) {
 		{
 			name: "big more than one message",
 			m: []byte{
-				0, 5, 1, 2, 3, 4, 5,
-				0, 5, 6, 7, 8, 9, 0,
-				0, 5, 1, 2, 3, 4, 5,
-				0, 3, 6, 7, 8,
+				0, 0, 0, 5, 1, 2, 3, 4, 5,
+				0, 0, 0, 5, 6, 7, 8, 9, 0,
+				0, 0, 0, 5, 1, 2, 3, 4, 5,
+				0, 0, 0, 3, 6, 7, 8,
 			},
 			dstSize: 5,
 			en:      18,
@@ -139,7 +139,7 @@ func TestReader_Read(t *testing.T) {
 		},
 		{
 			name:    "zero message",
-			m:       []byte{0, 0},
+			m:       []byte{0, 0, 0, 0},
 			dstSize: 1,
 			en:      0,
 			ee:      io.EOF,
@@ -148,9 +148,9 @@ func TestReader_Read(t *testing.T) {
 		{
 			name: "zero message in stream",
 			m: []byte{
-				0, 1, 1,
-				0, 0,
-				0, 2, 3, 4,
+				0, 0, 0, 1, 1,
+				0, 0, 0, 0,
+				0, 0, 0, 2, 3, 4,
 			},
 			dstSize: 10,
 			en:      3,
@@ -163,7 +163,7 @@ func TestReader_Read(t *testing.T) {
 		// ======== GOOD / DESTINATION ========
 		{
 			name:    "small destination for one message",
-			m:       []byte{0, 1, 1},
+			m:       []byte{0, 0, 0, 1, 1},
 			dstSize: 1,
 			en:      1,
 			ee:      io.EOF,
@@ -172,9 +172,9 @@ func TestReader_Read(t *testing.T) {
 		{
 			name: "small destination for three messages",
 			m: []byte{
-				0, 1, 1,
-				0, 1, 1,
-				0, 1, 1,
+				0, 0, 0, 1, 1,
+				0, 0, 0, 1, 1,
+				0, 0, 0, 1, 1,
 			},
 			dstSize: 1,
 			en:      3,
@@ -188,8 +188,8 @@ func TestReader_Read(t *testing.T) {
 		{
 			name: "message size in end of destination",
 			m: []byte{
-				0, 5, 1, 2, 3, 4, 5,
-				0, 3, 6, 7, 8,
+				0, 0, 0, 5, 1, 2, 3, 4, 5,
+				0, 0, 0, 3, 6, 7, 8,
 			},
 			dstSize: 9,
 			en:      8,
@@ -202,8 +202,8 @@ func TestReader_Read(t *testing.T) {
 		{
 			name: "exploded message size",
 			m: []byte{
-				0, 5, 1, 2, 3, 4, 5,
-				0, 3, 6, 7, 8,
+				0, 0, 0, 5, 1, 2, 3, 4, 5,
+				0, 0, 0, 3, 6, 7, 8,
 			},
 			dstSize: 8,
 			en:      8,
@@ -216,7 +216,7 @@ func TestReader_Read(t *testing.T) {
 		// ========== BAD ==========
 		{
 			name:    "too small destination for read",
-			m:       []byte{0, 0},
+			m:       []byte{0, 0, 0, 0},
 			dstSize: 0,
 			en:      0,
 			ee:      dstTooSmallError,
@@ -224,7 +224,7 @@ func TestReader_Read(t *testing.T) {
 		},
 		{
 			name:    "too small destination for handle message",
-			m:       []byte{0, 5, 1, 2, 3, 4, 5},
+			m:       []byte{0, 0, 0, 5, 1, 2, 3, 4, 5},
 			dstSize: 4,
 			en:      0,
 			ee:      dstTooSmallError,

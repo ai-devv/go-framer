@@ -69,7 +69,7 @@ func (r *Reader) Read(b []byte) (int, error) {
 			}
 
 			mLenPos = 0
-			mLen = int(binary.BigEndian.Uint16(r.lenBuff))
+			mLen = int(binary.BigEndian.Uint32(r.lenBuff))
 
 			if mLen == 0 {
 				continue
