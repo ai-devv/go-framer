@@ -20,21 +20,21 @@ func TestNewWriter(t *testing.T) {
 			name:      "full",
 			w:         io.Discard,
 			frameSize: 1,
-			lenBuff:   make([]byte, 2),
+			lenBuff:   make([]byte, MaxFrameSizeBytes),
 			ee:        nil,
 		},
 		{
 			name:      "too small frame size",
 			w:         io.Discard,
 			frameSize: 0,
-			lenBuff:   make([]byte, 2),
+			lenBuff:   make([]byte, MaxFrameSizeBytes),
 			ee:        invalidFrameSize,
 		},
 		{
 			name:      "too large frame size",
 			w:         io.Discard,
 			frameSize: math.MaxUint16 + 1,
-			lenBuff:   make([]byte, 2),
+			lenBuff:   make([]byte, MaxFrameSizeBytes),
 			ee:        invalidFrameSize,
 		},
 		{
@@ -55,7 +55,7 @@ func TestNewWriter(t *testing.T) {
 			name:      "empty writer",
 			w:         nil,
 			frameSize: 1,
-			lenBuff:   make([]byte, 2),
+			lenBuff:   make([]byte, MaxFrameSizeBytes),
 			ee:        emptyWriterError,
 		},
 	}

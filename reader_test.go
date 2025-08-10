@@ -17,7 +17,7 @@ func TestNewReader(t *testing.T) {
 		{
 			name:    "full",
 			r:       bytes.NewReader(nil),
-			lenBuff: make([]byte, 2),
+			lenBuff: make([]byte, MaxFrameSizeBytes),
 			ee:      nil,
 		},
 		{
@@ -29,7 +29,7 @@ func TestNewReader(t *testing.T) {
 		{
 			name:    "empty reader",
 			r:       nil,
-			lenBuff: nil,
+			lenBuff: make([]byte, MaxFrameSizeBytes),
 			ee:      emptyReaderError,
 		},
 		{
@@ -152,7 +152,7 @@ func TestReader_Read(t *testing.T) {
 				0, 0,
 				0, 2, 3, 4,
 			},
-			dstSize: 2,
+			dstSize: 10,
 			en:      3,
 			ee:      io.EOF,
 			em: []byte{

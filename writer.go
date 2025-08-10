@@ -25,8 +25,8 @@ func NewWriter(w io.Writer, frameSize int, lenBuff []byte) (*Writer, error) {
 	}
 
 	if lenBuff == nil {
-		lenBuff = make([]byte, 2)
-	} else if len(lenBuff) < 2 {
+		lenBuff = make([]byte, MaxFrameSizeBytes)
+	} else if len(lenBuff) < MaxFrameSizeBytes {
 		return nil, lenBuffTooSmallError
 	}
 
@@ -64,7 +64,7 @@ func (w *Writer) Write(b []byte) (int, error) {
 			break
 		}
 
-		if wn != 2 {
+		if wn != MaxFrameSizeBytes {
 			// TODO not covered by unit tests
 			err = invalidWriteResultError
 

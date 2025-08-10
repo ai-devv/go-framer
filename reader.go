@@ -18,8 +18,8 @@ func NewReader(r io.Reader, lenBuff []byte) (*Reader, error) {
 	}
 
 	if lenBuff == nil {
-		lenBuff = make([]byte, 2)
-	} else if len(lenBuff) < 2 {
+		lenBuff = make([]byte, MaxFrameSizeBytes)
+	} else if len(lenBuff) < MaxFrameSizeBytes {
 		return nil, lenBuffTooSmallError
 	}
 
@@ -57,14 +57,14 @@ func (r *Reader) Read(b []byte) (int, error) {
 		}
 
 		if mLen == 0 {
-			copyLen := min(r.end-r.pos, 2-mLenPos)
+			copyLen := min(r.end-r.pos, MaxFrameSizeBytes-mLenPos)
 
 			copy(r.lenBuff[mLenPos:], b[r.pos:r.pos+copyLen])
 
 			r.pos += copyLen
 			mLenPos += copyLen
 
-			if mLenPos != 2 {
+			if mLenPos != MaxFrameSizeBytes {
 				continue
 			}
 
